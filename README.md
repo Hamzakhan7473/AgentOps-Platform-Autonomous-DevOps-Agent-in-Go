@@ -52,6 +52,18 @@ go run ./cmd/agent
 
 With an LLM API key set, the agent will analyze each event and produce plans; with stub executor/verifier it won’t change real infrastructure.
 
+## API (backend)
+
+When the agent runs, an HTTP server is started for health checks and status:
+
+| Endpoint       | Description |
+|----------------|-------------|
+| `GET /health`  | Liveness (always 200 when process is up) |
+| `GET /ready`   | Readiness (200 when agent is ready to accept traffic) |
+| `GET /api/status` | JSON status: `status`, `ready`, `uptime_s`, `service` |
+
+Configure the port with `HTTP_PORT` (default `8080`).
+
 ## Build
 
 ```bash
@@ -71,13 +83,14 @@ docker run --env-file .env agentops/agent
 cmd/agent/          # Main entrypoint
 internal/
   agent/            # Core loop: Monitor → Analyze → Plan → Execute → Verify → Learn
+  server/           # HTTP API (health, ready, /api/status)
   monitor/          # Event streams (Stream interface + stub)
   analyze/          # LLM analyzer + noop
   execute/          # Executor interface + stub
   verify/           # Verifier interface + stub
   learn/            # Outcome store (memory stub; vector DB later)
   types/            # Event, Plan, Action, AuditEntry
-pkg/config/        # Config from env
+pkg/config/        # Config from env + validation
 ```
 
 ## Why Go?
