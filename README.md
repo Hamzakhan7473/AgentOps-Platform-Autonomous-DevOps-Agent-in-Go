@@ -99,6 +99,7 @@ pkg/config/        # Config from env + validation
 - **Performance** — Sub-millisecond decision loops at scale  
 - **Single binary** — Easy deployment as sidecar or standalone  
 - **Strong typing** — Safer agentic actions on critical infrastructure  
+ - **YOLO merges** — Sometimes you just merge your own PR.  
 
 ## License
 
