@@ -26,6 +26,7 @@ func New(addr string) *Server {
 	s.mux.HandleFunc("/health", s.handleHealth)
 	s.mux.HandleFunc("/ready", s.handleReady)
 	s.mux.HandleFunc("/api/status", s.handleStatus)
+	s.mux.HandleFunc("/api/incidents", s.handleIncidents)
 	s.server = &http.Server{Addr: addr, Handler: s.mux}
 	return s
 }
@@ -72,12 +73,57 @@ func (s *Server) handleStatus(w http.ResponseWriter, _ *http.Request) {
 	ready := s.ready
 	s.mu.RUnlock()
 	out := map[string]interface{}{
-		"status":    "running",
-		"ready":     ready,
-		"uptime_s":  time.Since(s.start).Seconds(),
-		"service":   "agentops-agent",
+		"status":   "running",
+		"ready":    ready,
+		"uptime_s": time.Since(s.start).Seconds(),
+		"service":  "agentops-agent",
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(out)
+}
+
+// handleIncidents returns a small static list of example incidents.
+// This is a starting point for a richer incidents API backed by the agent's state.
+func (s *Server) handleIncidents(w http.ResponseWriter, _ *http.Request) {
+	type incident struct {
+		ID          string  `json:"id"`
+		Kind        string  `json:"kind"`
+		Severity    string  `json:"severity"`
+		Title       string  `json:"title"`
+		Description string  `json:"description"`
+		ResourceID  string  `json:"resource_id"`
+		Region      string  `json:"region,omitempty"`
+		AgeSeconds  float64 `json:"age_seconds"`
+	}
+
+	now := time.Now()
+	examples := []incident{
+		{
+			ID:          "example-1",
+			Kind:        "incident",
+			Severity:    "high",
+			Title:       "High CPU on web-tier",
+			Description: "CPU utilization > 90% for 5m",
+			ResourceID:  "i-0123456789abcdef0",
+			Region:      "us-east-1",
+			AgeSeconds:  time.Since(now.Add(-5 * time.Minute)).Seconds(),
+		},
+		{
+			ID:          "example-2",
+			Kind:        "cost",
+			Severity:    "medium",
+			Title:       "Idle dev database",
+			Description: "RDS instance idle for 24h; candidate for stop",
+			ResourceID:  "rds-dev-001",
+			Region:      "us-west-2",
+			AgeSeconds:  time.Since(now.Add(-24 * time.Hour)).Seconds(),
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"items": examples,
+	})
 }
